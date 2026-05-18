@@ -1,18 +1,26 @@
 import os
 import sys
 
-# 100% sichere Erkennung für Google Colab
+
+# Erkennt automatisch, ob der Code in Colab oder Kaggle läuft
 IS_COLAB = 'google.colab' in sys.modules or os.path.exists('/content')
+IS_KAGGLE = os.path.exists('/kaggle')
 
 if IS_COLAB:
-    # Falls der Ordner in Ihrem Google Drive direkt 'rag_ml_data' heißt:
     BASE_PATH = "/content/drive/MyDrive/rag_ml_data"
-    DEVICE = "cuda"  # Schaltet JETZT die schnelle Cloud-GPU ein
+    DEVICE = "cuda"
     print("🤖 [CONFIG] Google Colab erkannt! Nutze GPU und Google Drive.")
+elif IS_KAGGLE:
+    # Auf Kaggle binden wir Google Drive als Webdav oder ein Kaggle Dataset ein.
+    # Für den Moment setzen wir den Pfad auf den temporären Arbeitsordner von Kaggle.
+    BASE_PATH = "/kaggle/working/rag_ml_data"
+    DEVICE = "cuda"  # Zündet die kostenlose T4 GPU auf Kaggle!
+    print("🦅 [CONFIG] Kaggle Umgebung erkannt! Nutze Kaggle T4 GPU.")
 else:
     BASE_PATH = r"C:\Users\ahmad\Desktop\rag_ml"
     DEVICE = "cpu"
     print("🏠 [CONFIG] Lokale Umgebung erkannt! Nutze CPU.")
+
 
 # 1. Die Regeln für die Query Expansion
 EXPANSION_RULES = {
