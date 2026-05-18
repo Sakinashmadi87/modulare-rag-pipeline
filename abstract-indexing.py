@@ -7,22 +7,30 @@ from config import PATHS, IS_COLAB
 
 # --- SELECTION OF TARGETS DEPENDING ON PLATFORM ---
 if IS_COLAB:
-    # Google Drive Pfade (Stellen Sie sicher, dass diese Dateien in Drive liegen!)
+    # Google Drive Basis-Ordner (MyDrive gehört bei Google immer dazu)
     BASE_DATA_PATH = "/content/drive/MyDrive/rag_ml_data"
-    input_file = os.path.join(BASE_DATA_PATH, "modern_golden_set.jsonl")
-    checkpoint_file = os.path.join(BASE_DATA_PATH, "indexing_checkpoint_only_pdfs.txt")
-    pdf_active_dir = os.path.join(BASE_DATA_PATH, "data", "papers", "pdfs_active")
+    
+    # Der exakte Ordner, in dem ALLES liegt (PDFs und die JSONL)
+    pdf_active_dir = os.path.join(BASE_DATA_PATH, "papers", "pdfs_active")
+    
+    # Da die JSONL im selben Ordner liegt, verknüpfen wir sie mit pdf_active_dir
+    input_file = os.path.join(pdf_active_dir, "modern_golden_set.jsonl")
+    checkpoint_file = os.path.join(pdf_active_dir, "indexing_checkpoint_only_pdfs.txt")
     
     # Qdrant Cloud Client
     print("🌐 Initialisiere Qdrant CLOUD Client...")
-    client = qdrant_client.QdrantClient(url=os.getenv('QDRANT_URL'), api_key=os.getenv('QDRANT_API_KEY'))
-    device = "cuda"  # Schaltet die T4-GPU ein!
+    client = qdrant_client.QdrantClient(
+        url=os.getenv('QDRANT_URL'), 
+        api_key=os.getenv('QDRANT_API_KEY'),
+        check_compatibility=False
+    )
+    device = "cuda"
 else:
     # Lokale Pfade für Ihr Surface Laptop
     base_path = r"C:\Users\ahmad\Desktop\rag_ml\data\papers"
-    input_file = os.path.join(base_path, "modern_golden_set.jsonl")
-    checkpoint_file = os.path.join(base_path, "indexing_checkpoint_only_pdfs.txt")
     pdf_active_dir = os.path.join(base_path, "pdfs_active")
+    input_file = os.path.join(pdf_active_dir, "modern_golden_set.jsonl")
+    checkpoint_file = os.path.join(pdf_active_dir, "indexing_checkpoint_only_pdfs.txt")
     db_path = r"C:\Users\ahmad\Desktop\rag_ml\qdrant_db"
     
     print("🏠 Initialisiere lokalen Qdrant Client...")
