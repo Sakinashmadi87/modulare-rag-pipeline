@@ -11,21 +11,42 @@ from qdrant_client.http.exceptions import ResponseHandlingException
 # Modules
 from modules.cleaner import clean_scientific_markdown
 from modules.chunker import ArxivChunker
-from config import PATHS, IS_COLAB
+from config import PATHS, IS_COLAB, IS_KAGGLE
 
 # --- CONFIG DYNAMISCH FÜR LOKAL ODER CLOUD ---
 if IS_COLAB:
-    # Pfade exakt angepasst an Ihre Google-Drive Struktur
+    # 1. GOOGLE COLAB MODUS
     BASE_DATA_PATH = "/content/drive/MyDrive/rag_ml_data"
     MD_DIR = os.path.join(BASE_DATA_PATH, "papers", "extracted_markdown")
     CHECKPOINT = os.path.join(BASE_DATA_PATH, "papers", "checkpoint_1024.txt")
+    device = "cuda"
+    print("🤖 [INDEXER] Google Colab erkannt! Nutze GPU und Google Drive.")
     
-    print("🌐 Initialisiere Qdrant CLOUD Client...")
+elif IS_KAGGLE:
+    # 2. KAGGLE CLOUD MODUS (NEU)
+    # Kaggle Datasets liegen immer unter /kaggle/input/[dataset-name]
+    # Arbeitsdaten (Checkpoints) müssen in den beschreibbaren /kaggle/working Ordner
+    MD_DIR = "/kaggle/input/rag-ml-data/papers/extracted_markdown"
+    CHECKPOINT = "/kaggle/working/checkpoint_1024.txt"
+    device = "cuda"  # Zündet die kostenlose T4 GPU auf Kaggle!
+    print("🦅 [INDEXER] Kaggle Umgebung erkannt! Nutze T4 GPU.")
+    
+else:
+    # 3. LOKALER SURFACE LAPTOP MODUS
+    MD_DIR = r"C:\Users\ahmad\Desktop\rag_ml\data\papers\extracted_markdown"
+    DB_PATH = r"C:\Users\ahmad\Desktop\rag_ml\qdrant_db_1024"
+    CHECKPOINT = r"C:\Users\ahmad\Desktop\rag_ml\data\papers\checkpoint_1024.txt"
+    device = "cpu"
+    print("🏠 [INDEXER] Lokale Umgebung erkannt! Nutze CPU.")
+
+# --- INITIALISIERE QDRANT CLIENT ---
+if IS_COLAB or IS_KAGGLE:
+    print("🌐 Verbinde mit Qdrant CLOUD Cluster...")
     client = qdrant_client.QdrantClient(
         url=os.getenv('QDRANT_URL'), 
         api_key=os.getenv('QDRANT_API_KEY'),
         check_compatibility=False,
-        timeout=60.0 # Erhöhtes Timeout für Cloud-Verbindungen
+        timeout=60.0
     )
     device = "cuda"  # Zündet die T4-GPU in Colab
 else:
@@ -37,7 +58,7 @@ else:
     print("🏠 Initialisiere lokalen Qdrant Client...")
     client = qdrant_client.QdrantClient(path=DB_PATH)
     device = "cpu"
-
+   
 NEW_CHUNK_SIZE = 1024
 NEW_OVERLAP = 100
 collection_name = "stage2_chunks_1024"
