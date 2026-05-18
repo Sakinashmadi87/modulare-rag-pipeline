@@ -1,16 +1,18 @@
 import os
+import sys
 
-# Automatische Erkennung, ob wir in Google Colab sind
-IS_COLAB = os.path.exists('/content/drive')
+# 100% sichere Erkennung für Google Colab
+IS_COLAB = 'google.colab' in sys.modules or os.path.exists('/content')
 
 if IS_COLAB:
-    # Google Drive Basis-Pfad (Passen Sie den Namen 'rag_ml_data' an Ihren Drive-Ordner an)
+    # Falls der Ordner in Ihrem Google Drive direkt 'rag_ml_data' heißt:
     BASE_PATH = "/content/drive/MyDrive/rag_ml_data"
-    DEVICE = "cuda"  # Nutzt die schnelle Colab-GPU
+    DEVICE = "cuda"  # Schaltet JETZT die schnelle Cloud-GPU ein
+    print("🤖 [CONFIG] Google Colab erkannt! Nutze GPU und Google Drive.")
 else:
-    # Ihr lokaler Pfad auf dem Surface Laptop
     BASE_PATH = r"C:\Users\ahmad\Desktop\rag_ml"
-    DEVICE = "cpu"   # Schont Ihren Laptop-Akku
+    DEVICE = "cpu"
+    print("🏠 [CONFIG] Lokale Umgebung erkannt! Nutze CPU.")
 
 # 1. Die Regeln für die Query Expansion
 EXPANSION_RULES = {
