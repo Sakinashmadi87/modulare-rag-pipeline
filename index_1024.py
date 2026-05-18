@@ -71,7 +71,9 @@ files_to_process = [f for f in all_files if f not in done_files]
 # --- LOOP (Läuft jetzt blitzschnell auf GPU!) ---
 print(f"Processing {len(files_to_process)} papers in the Cloud.")
 
-# Ab hier bleibt Ihr bestehender Code völlig identisch!
+# Maximale Anzahl an Chunks, die wir auf einmal hochladen (schützt vor 400 Bad Request)
+UPLOAD_BATCH_SIZE = 32
+
 for filename in tqdm(files_to_process, desc="Total Progress"):
     file_path = os.path.join(MD_DIR, filename)
     paper_id = filename.replace(".md", "").replace("_", "/")
@@ -83,12 +85,14 @@ for filename in tqdm(files_to_process, desc="Total Progress"):
     chunks = chunker.splitter.split_text(cleaned_md)
     
     if chunks:
+        # 1. Berechne alle Embeddings für dieses Paper auf der GPU
         embeddings = model.encode(chunks, show_progress_bar=False)
         
-        points = []
+        # 2. Erzeuge alle Point-Strukturen
+        all_points = []
         for i, (chunk_text, vector) in enumerate(zip(chunks, embeddings)):
             chunk_id = hashlib.md5(f"{paper_id}_{i}_1024".encode()).hexdigest()
-            points.append(PointStruct(
+            all_points.append(PointStruct(
                 id=chunk_id,
                 vector=vector.tolist(),
                 payload={
@@ -98,8 +102,12 @@ for filename in tqdm(files_to_process, desc="Total Progress"):
                 }
             ))
         
-        client.upsert(collection_name=collection_name, points=points)
+        # 3. Sicherheits-Schleife: Lade die Chunks in kleinen Portionen hoch
+        for k in range(0, len(all_points), UPLOAD_BATCH_SIZE):
+            chunk_slice = all_points[k:k + UPLOAD_BATCH_SIZE]
+            client.upsert(collection_name=collection_name, points=chunk_slice)
 
+    # 4. Save Checkpoint (Direkt nach jedem erfolgreichen Paper)
     with open(CHECKPOINT, "a") as f:
         f.write(filename + "\n")
 
