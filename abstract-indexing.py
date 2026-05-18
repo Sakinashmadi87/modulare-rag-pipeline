@@ -136,7 +136,7 @@ if os.path.exists(input_file):
                 payload={"paper_id": batch_papers[j]['id'], "file_id": batch_papers[j]['id'].replace('/', '_'), "title": batch_papers[j]['title_clean'], "has_full_text": True}
             ) for j in range(len(batch_papers))
         ]
-        client.client.upsert(collection_name=collection_name, points=points)
+        client.upsert(collection_name=collection_name, points=points)
         indexed_count += len(batch_papers)
         
     print(f"🏁 Fertig! Insgesamt {indexed_count} Abstracts erfolgreich in die Qdrant Cloud geladen.")
