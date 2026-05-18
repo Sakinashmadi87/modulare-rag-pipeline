@@ -5,6 +5,8 @@ from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import qdrant_client
 from qdrant_client.models import Distance, VectorParams, PointStruct
+import time
+from qdrant_client.http.exceptions import ResponseHandlingException
 
 # Modules
 from modules.cleaner import clean_scientific_markdown
@@ -22,7 +24,8 @@ if IS_COLAB:
     client = qdrant_client.QdrantClient(
         url=os.getenv('QDRANT_URL'), 
         api_key=os.getenv('QDRANT_API_KEY'),
-        check_compatibility=False
+        check_compatibility=False,
+        timeout=60.0 # Erhöhtes Timeout für Cloud-Verbindungen
     )
     device = "cuda"  # Zündet die T4-GPU in Colab
 else:
@@ -102,10 +105,23 @@ for filename in tqdm(files_to_process, desc="Total Progress"):
                 }
             ))
         
-        # 3. Sicherheits-Schleife: Lade die Chunks in kleinen Portionen hoch
+       
+        # 3. Sicherheits-Schleife: Lade die Chunks in kleinen Portionen mit Retry-Logik hoch
         for k in range(0, len(all_points), UPLOAD_BATCH_SIZE):
             chunk_slice = all_points[k:k + UPLOAD_BATCH_SIZE]
-            client.upsert(collection_name=collection_name, points=chunk_slice)
+            
+            # Versuche den Upload bis zu 3-mal, falls das Internet laggt
+            for attempt in range(3):
+                try:
+                    client.upsert(collection_name=collection_name, points=chunk_slice)
+                    break  # Erfolgreich! Schleife verlassen und mit nächstem Slice weitermachen
+                except Exception as e:
+                    if attempt < 2:
+                        print(f"\n⚠️ Netzwerk-Verzögerung bei {filename}. Starte Versuch {attempt + 2}/3 in 5 Sekunden...")
+                        time.sleep(5)
+                    else:
+                        raise e  # Wenn es nach 3 Versuchen nicht klappt, wirf den Fehler
+
 
     # 4. Save Checkpoint (Direkt nach jedem erfolgreichen Paper)
     with open(CHECKPOINT, "a") as f:
