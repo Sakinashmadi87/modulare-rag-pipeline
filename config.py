@@ -33,7 +33,7 @@ HP_GRID = {
     "chunk_overlap": [100],
     "math_heuristic": [True],         
     "embedding_model": "BAAI/bge-m3",
-    "llm_model": "meta-llama/Meta-Llama-3.1-8B-Instruct",  # <-- UPDATED FOR CLOUD PRODUCTION
+    "llm_model": "unsloth/llama-3-8b-Instruct",  # <-- UPDATED FOR CLOUD PRODUCTION
     "device": DEVICE                  
 }
 

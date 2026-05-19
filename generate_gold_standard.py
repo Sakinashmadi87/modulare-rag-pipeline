@@ -11,7 +11,7 @@ from modules.cleaner import clean_scientific_markdown
 
 def main():
     NUM_QUESTIONS = 100
-    model_id = HP_GRID["llm_model"]  # "meta-llama/Meta-Llama-3.1-8B-Instruct"
+    model_id = HP_GRID["llm_model"]  # "llm_model": "unsloth/llama-3-8b-Instruct"
     device = HP_GRID["device"]       # "cuda" on Kaggle/Colab
     
     # 1. Output location check
