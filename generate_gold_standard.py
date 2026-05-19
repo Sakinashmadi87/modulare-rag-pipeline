@@ -11,7 +11,7 @@ from modules.cleaner import clean_scientific_markdown
 
 def main():
     NUM_QUESTIONS = 100
-    model_id = HP_GRID["llm_model"]  # "meta-llama/Meta-Llama-3-8B-Instruct"
+    model_id = HP_GRID["llm_model"]  # "meta-llama/Meta-Llama-3.1-8B-Instruct"
     device = HP_GRID["device"]       # "cuda" on Kaggle/Colab
     
     # 1. Output location check
@@ -29,7 +29,7 @@ def main():
     print(f"🖥️ Initializing {model_id} on {device.upper()} for synthetic gold-standard generation...")
     
     # 3. Setup Hugging Face Pipeline optimized for Kaggle T4 GPU
-    # Llama-3-8B fits perfectly in 16GB VRAM using bfloat16 quantization
+    # Llama-3.1-8B fits perfectly in 16GB VRAM using bfloat16 quantization
     generator = pipeline(
         "text-generation",
         model=model_id,
@@ -49,7 +49,7 @@ def main():
         # Run through modular cleaning workflow (clean math/latex filters)
         context_chunk = clean_scientific_markdown(raw_content, replace_math=True)[:3500]
         
-        # System Prompt targeted at high-technicality Llama-3 synthesis
+        # System Prompt targeted at high-technicality Llama-3.1 synthesis
         prompt = f"""
         You are an expert AI professor reviewing arXiv papers.
         Based ONLY on the following context extracted from a scientific paper, generate exactly ONE highly technical, specific, and non-trivial question.
