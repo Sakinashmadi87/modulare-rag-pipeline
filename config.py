@@ -1,28 +1,20 @@
 import os
 import sys
 
-
-# Erkennt automatisch, ob der Code in Colab oder Kaggle läuft
-IS_COLAB = 'google.colab' in sys.modules or os.path.exists('/content')
+# 1. Automatische Erkennung der Umgebung
+IS_COLAB = 'google.colab' in sys.modules
 IS_KAGGLE = os.path.exists('/kaggle')
 
-if IS_COLAB:
-    BASE_PATH = "/content/drive/MyDrive/rag_ml_data"
-    DEVICE = "cuda"
-    print("🤖 [CONFIG] Google Colab erkannt! Nutze GPU und Google Drive.")
-elif IS_KAGGLE:
-    # Auf Kaggle binden wir Google Drive als Webdav oder ein Kaggle Dataset ein.
-    # Für den Moment setzen wir den Pfad auf den temporären Arbeitsordner von Kaggle.
-    BASE_PATH = "/kaggle/working/rag_ml_data"
-    DEVICE = "cuda"  # Zündet die kostenlose T4 GPU auf Kaggle!
-    print("🦅 [CONFIG] Kaggle Umgebung erkannt! Nutze Kaggle T4 GPU.")
-else:
-    BASE_PATH = r"C:\Users\ahmad\Desktop\rag_ml"
-    DEVICE = "cpu"
-    print("🏠 [CONFIG] Lokale Umgebung erkannt! Nutze CPU.")
+# 2. Dynamische Pfad-Zuweisung über Umgebungsvariablen 
+# Wenn eine Variable nicht im System existiert, nimmt Python den Standardpfad (r"C:\...")
+BASE_MARKDOWN_DIR = os.getenv("RAG_MARKDOWN_DIR", r"C:\Users\ahmad\Desktop\rag_ml\data\papers\extracted_markdown")
+BASE_EVAL_FILE = os.getenv("RAG_EVAL_FILE", r"C:\Users\ahmad\Desktop\rag_ml\data\papers\eval_set_100q.jsonl")
+BASE_CHECKPOINT_FILE = os.getenv("RAG_CHECKPOINT_FILE", r"C:\Users\ahmad\Desktop\rag_ml\data\papers\checkpoint_1024.txt")
 
+# Hardware-Wahl
+DEVICE = "cuda" if (IS_COLAB or IS_KAGGLE) else "cpu"
 
-# 1. Die Regeln für die Query Expansion
+# 3. Das Hyperparameter Grid & Regeln (Unverändert)
 EXPANSION_RULES = {
     "scaling laws": "compute-optimal Chinchilla model size parameters",
     "rag": "retrieval-augmented generation knowledge retrieval",
@@ -41,14 +33,13 @@ HP_GRID = {
     "chunk_overlap": [100],
     "math_heuristic": [True],         
     "embedding_model": "BAAI/bge-m3",
-    "llm_model": "phi3:mini",
+    "llm_model": "meta-llama/Meta-Llama-3-8B-Instruct",  # <-- UPDATED FOR CLOUD PRODUCTION
     "device": DEVICE                  
 }
 
-# 3. Pfade dynamisch generiert
 PATHS = {
-    "markdown": os.path.join(BASE_PATH, "data", "papers", "extracted_markdown"),
-    "eval_set": os.path.join(BASE_PATH, "data", "papers", "eval_set_new.jsonl"),
-    "eval_set_1017": os.path.join(BASE_PATH, "data", "papers", "eval_set_1017.jsonl"),
-    "results_csv": os.path.join(BASE_PATH, "final_optimization_results.csv")
+    "markdown": BASE_MARKDOWN_DIR,
+    "eval_set_100q": BASE_EVAL_FILE,
+    "checkpoint_1024": BASE_CHECKPOINT_FILE,
+    "results_csv": "final_optimization_results.csv" if (IS_COLAB or IS_KAGGLE) else r"C:\Users\ahmad\Desktop\rag_ml\final_optimization_results.csv"
 }
