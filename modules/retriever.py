@@ -8,13 +8,12 @@ class HybridRetriever:
         self.expansion_rules = EXPANSION_RULES
         
         # 🌐 CLOUD-MODUS (Sowohl für Google Colab als auch für Kaggle)
-        if IS_COLAB or IS_KAGGLE:
+        if IS_COLAB or IS_KAGGLE or (url is not None):
             print("🌐 Retriever: Initialisiere Qdrant Cloud Client...")
-            # Wenn url/api_key nicht übergeben wurden, versuchen wir sie aus dem System zu lesen
+            # Parameter haben Priorität, danach kommen die Umgebungsvariablen
             cloud_url = url or os.getenv('QDRANT_URL')
             cloud_key = api_key or os.getenv('QDRANT_API_KEY')
             
-            # Im Cloud-Modus nutzen wir denselben Online-Cluster für Stage 1 und Stage 2
             self.main_client = qdrant_client.QdrantClient(
                 url=cloud_url, 
                 api_key=cloud_key,
@@ -22,6 +21,7 @@ class HybridRetriever:
                 timeout=60.0
             )
             self.chunk_client = self.main_client
+
             
         # 🏠 LOKALER MODUS (Surface Laptop)
         else:

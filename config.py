@@ -39,7 +39,7 @@ HP_GRID = {
 
 PATHS = {
     "markdown": BASE_MARKDOWN_DIR,
-    "eval_set_100q": BASE_EVAL_FILE,
+    "eval_set": "/kaggle/working/eval_set_100q.jsonl" if IS_KAGGLE else ("/content/eval_set_100q.jsonl" if IS_COLAB else BASE_EVAL_FILE),
     "checkpoint_1024": BASE_CHECKPOINT_FILE,
     "results_csv": "final_optimization_results.csv" if (IS_COLAB or IS_KAGGLE) else r"C:\Users\ahmad\Desktop\rag_ml\final_optimization_results.csv"
 }
