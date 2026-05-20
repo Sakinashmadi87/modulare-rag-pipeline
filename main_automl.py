@@ -1,3 +1,4 @@
+#main_automl.py
 import json
 import csv
 import os
@@ -66,10 +67,11 @@ def main():
         # Nutzt den im Retriever hartcodierten Standard-Pfad
         retriever = HybridRetriever()
 
-    # 3. Pfad-Management für das 77-Fragen-Set
-    # Verhindert KeyError, falls der Key in einer alten config.py fehlt
-    eval_path = PATHS.get("eval_set_100q", os.path.join(os.getcwd(), "eval_set_100q.jsonl"))
+    # 3. Lade Evaluationsset (eval_set_100q.jsonl) - Pfad wird automatisch je nach Umgebung angepasst
+   
+    eval_path = PATHS.get("eval_set", os.path.join(os.getcwd(), "eval_set_100q.jsonl"))
     print(f"📂 Lade Evaluationsset aus: {eval_path}")
+
     
     if not os.path.exists(eval_path):
         print(f"❌ Fehler: Datei {eval_path} existiert nicht!")
