@@ -9,7 +9,7 @@ IS_KAGGLE = os.path.exists('/kaggle')
 if IS_KAGGLE:
     # Kaggle-spezifische Pfade (angepasst für die Kaggle-Umgebung)
     BASE_MARKDOWN_DIR = "/kaggle/input/datasets/sakinaahmadi/rag-ml-data/extracted_markdown"
-    BASE_EVAL_FILE = "/kaggle/working/eval_set_100q.jsonl"
+    BASE_EVAL_FILE = "/kaggle/input/datasets/sakinaahmadi/rag-automl-gold-standard-100q/eval_set_100q.jsonl"
     BASE_CHECKPOINT_FILE = "/kaggle/working/indexing_checkpoint_1024.txt"
 elif IS_COLAB:
     BASE_DATA_PATH = "/content/drive/MyDrive/rag_ml_data"
