@@ -49,7 +49,7 @@ def main():
         print("🏠 Connecting to local Qdrant...")
         retriever = HybridRetriever()
 
-    eval_path = PATHS.get("eval_set", "/kaggle/working/eval_set_100q.jsonl")
+    eval_path = PATHS["eval_set"]
     print(f"📂 Loading evaluation set from: {eval_path}")
     
     with open(eval_path, 'r', encoding='utf-8') as f:
