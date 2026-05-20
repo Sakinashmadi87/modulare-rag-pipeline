@@ -14,9 +14,13 @@ def main():
     model_id = HP_GRID["llm_model"]  # "llm_model": "unsloth/llama-3-8b-Instruct"
     device = HP_GRID["device"]       # "cuda" on Kaggle/Colab
     
-    # 1. Output location check
-    output_file = PATHS["eval_set_100q"]
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    # 1. Output location check (Using safe fallback mapping)
+    output_file = PATHS.get("eval_set_100q", PATHS.get("eval_set", "/kaggle/working/eval_set_100q.jsonl"))
+    
+    # Ensure parent folder structure exists
+    if os.path.dirname(output_file):
+        os.makedirs(os.path.dirname(output_file), exist_ok=True)
+
     
     # 2. Collect papers
     if not os.path.exists(PATHS["markdown"]):
