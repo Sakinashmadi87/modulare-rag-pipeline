@@ -1,20 +1,42 @@
+# config.py
 import os
 import sys
 
-# 1. Automatische Erkennung der Umgebung
 IS_COLAB = 'google.colab' in sys.modules
 IS_KAGGLE = os.path.exists('/kaggle')
 
-# 2. Dynamische Pfad-Zuweisung über Umgebungsvariablen 
-# Wenn eine Variable nicht im System existiert, nimmt Python den Standardpfad (r"C:\...")
-BASE_MARKDOWN_DIR = os.getenv("RAG_MARKDOWN_DIR", r"C:\Users\ahmad\Desktop\rag_ml\data\papers\extracted_markdown")
-BASE_EVAL_FILE = os.getenv("RAG_EVAL_FILE", r"C:\Users\ahmad\Desktop\rag_ml\data\papers\eval_set_100q.jsonl")
-BASE_CHECKPOINT_FILE = os.getenv("RAG_CHECKPOINT_FILE", r"C:\Users\ahmad\Desktop\rag_ml\data\papers\checkpoint_1024.txt")
+# FIX FOR KAGGLE:
+if IS_KAGGLE:
+    # Kaggle-spezifische Pfade (angepasst für die Kaggle-Umgebung)
+    BASE_MARKDOWN_DIR = "/kaggle/working/modulare-rag-pipeline/data/extracted_markdown"
+    BASE_EVAL_FILE = "/kaggle/working/eval_set_100q.jsonl"
+    BASE_CHECKPOINT_FILE = "/kaggle/working/indexing_checkpoint_1024.txt"
+elif IS_COLAB:
+    BASE_DATA_PATH = "/content/drive/MyDrive/rag_ml_data"
+    BASE_MARKDOWN_DIR = os.path.join(BASE_DATA_PATH, "data/extracted_markdown")
+    BASE_EVAL_FILE = "/content/eval_set_100q.jsonl"
+    BASE_CHECKPOINT_FILE = os.path.join(BASE_DATA_PATH, "checkpoint_1024.txt")
+else:
+    # lokaler Laptop
+    BASE_MARKDOWN_DIR = r"C:\Users\ahmad\Desktop\rag_ml\data\papers\extracted_markdown"
+    BASE_EVAL_FILE = r"C:\Users\ahmad\Desktop\rag_ml\data\papers\eval_set_100q.jsonl"
+    BASE_CHECKPOINT_FILE = r"C:\Users\ahmad\Desktop\rag_ml\data\papers\checkpoint_1024.txt"
+
+DEVICE = "cuda" if (IS_COLAB or IS_KAGGLE) else "cpu"
+
+# ... (Rest HP_GRID bleibt gleich) ...
+
+PATHS = {
+    "markdown": BASE_MARKDOWN_DIR,
+    "eval_set": BASE_EVAL_FILE, # Einheitlicher Key für alle Skripte!
+    "checkpoint_1024": BASE_CHECKPOINT_FILE,
+    "results_csv": "final_optimization_results.csv" if (IS_COLAB or IS_KAGGLE) else r"C:\Users\ahmad\Desktop\rag_ml\final_optimization_results.csv"
+}
 
 # Hardware-Wahl
 DEVICE = "cuda" if (IS_COLAB or IS_KAGGLE) else "cpu"
 
-# 3. Das Hyperparameter Grid & Regeln (Unverändert)
+# 3. Das Hyperparameter Grid & Regeln für die Query Expansion
 EXPANSION_RULES = {
     "scaling laws": "compute-optimal Chinchilla model size parameters",
     "rag": "retrieval-augmented generation knowledge retrieval",
