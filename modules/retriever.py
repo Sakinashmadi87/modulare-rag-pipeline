@@ -43,7 +43,7 @@ class HybridRetriever:
 
         # --- STAGE 1: Suche in den Abstracts ---
         stage1_results = self.main_client.query_points(
-            collection_name="stage1_abstracts_only_active_pdfs",
+            collection_name="stage1_abstracts_cleaned",
             query=query_vector,
             limit=top_k_papers
         ).points

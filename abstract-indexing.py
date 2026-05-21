@@ -1,4 +1,4 @@
-#abstracts_indexing.py
+#abstracts-indexing.py
 import os
 import json
 import hashlib
