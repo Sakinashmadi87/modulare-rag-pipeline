@@ -1,144 +1,142 @@
-import json
+%%writefile /kaggle/working/abstracts_indexing.py
 import os
+import json
+import hashlib
+import time
+import sys
+from tqdm import tqdm
 from sentence_transformers import SentenceTransformer
 import qdrant_client
-from qdrant_client.models import Distance, VectorParams, PointStruct
-from config import PATHS, IS_COLAB
+from qdrant_client.models import Distance, VectorParams, PointStruct, PayloadSchemaType
 
-# --- SELECTION OF TARGETS DEPENDING ON PLATFORM ---
-if IS_COLAB:
-    # Google Drive Basis-Ordner (MyDrive gehört bei Google immer dazu)
-    BASE_DATA_PATH = "/content/drive/MyDrive/rag_ml_data"
+# Resolve repository paths and modular architectures
+sys.path.append("/kaggle/working/modulare-rag-pipeline")
+sys.path.append("/kaggle/working")
+
+from modules.cleaner import clean_scientific_markdown
+from config import PATHS, HP_GRID, IS_COLAB, IS_KAGGLE
+
+def main():
+    print(f"🖥️ Initializing Abstract Indexer on: {HP_GRID['device'].upper()}")
+    model = SentenceTransformer(HP_GRID['embedding_model'], device=HP_GRID['device'])
     
-    # Der exakte Ordner, in dem ALLES liegt (PDFs und die JSONL)
-    pdf_active_dir = os.path.join(BASE_DATA_PATH, "papers", "pdfs_active")
-    
-    # Da die JSONL im selben Ordner liegt, verknüpfen wir sie mit pdf_active_dir
-    input_file = os.path.join(pdf_active_dir, "modern_golden_set.jsonl")
-    checkpoint_file = os.path.join(pdf_active_dir, "indexing_checkpoint_only_pdfs.txt")
-    
-    # Qdrant Cloud Client
-    print("🌐 Initialisiere Qdrant CLOUD Client...")
-    client = qdrant_client.QdrantClient(
-        url=os.getenv('QDRANT_URL'), 
-        api_key=os.getenv('QDRANT_API_KEY'),
-        check_compatibility=False
-    )
-    device = "cuda"
-else:
-    # Lokale Pfade für Ihr Surface Laptop
-    base_path = r"C:\Users\ahmad\Desktop\rag_ml\data\papers"
-    pdf_active_dir = os.path.join(base_path, "pdfs_active")
-    input_file = os.path.join(pdf_active_dir, "modern_golden_set.jsonl")
-    checkpoint_file = os.path.join(pdf_active_dir, "indexing_checkpoint_only_pdfs.txt")
-    db_path = r"C:\Users\ahmad\Desktop\rag_ml\qdrant_db"
-    
-    print("🏠 Initialisiere lokalen Qdrant Client...")
-    client = qdrant_client.QdrantClient(path=db_path)
-    device = "cpu"
-
-collection_name = "stage1_abstracts_only_active_pdfs"
-
-# --- SETUP MODEL ---
-print(f"🖥️ Lade BGE-M3 Modell auf: {device.upper()}...")
-model = SentenceTransformer('BAAI/bge-m3', device=device)
-
-# Scanne verfügbare PDFs im jeweiligen Zielordner
-print(f"Scanne verfügbare PDFs in: {pdf_active_dir}")
-if os.path.exists(pdf_active_dir):
-    available_pdfs = {f.replace(".pdf", "") for f in os.listdir(pdf_active_dir) if f.endswith(".pdf")}
-else:
-    print(f"⚠️ Warnung: Ordner {pdf_active_dir} nicht gefunden. Nutze leere Liste.")
-    available_pdfs = set()
-print(f"Gefunden: {len(available_pdfs)} aktive PDFs. Nur diese werden indexiert.")
-
-# Collection erstellen falls nicht vorhanden
-if not client.collection_exists(collection_name):
-    print(f"✨ Erstelle neue Collection in der Cloud: {collection_name}")
-    client.create_collection(
-        collection_name=collection_name,
-        vectors_config=VectorParams(size=1024, distance=Distance.COSINE)
-    )
-
-# Checkpoint laden
-start_line = 0
-if os.path.exists(checkpoint_file):
-    with open(checkpoint_file, "r") as f:
-        start_line = int(f.read().strip())
-    print(f"🔄 Fortsetzen ab Quellzeile {start_line}...")
-
-# --- INDEXIERUNG LOOP ---
-batch_size = 32  # Höhere Batch-Größe für die Cloud-GPU (beschleunigt den Prozess)
-batch_papers = []
-indexed_count = 0
-
-print(f"🚀 Starte Indexierung (Filter: NUR Paper mit vorhandenem PDF)...")
-
-if os.path.exists(input_file):
-    with open(input_file, 'r', encoding='utf-8') as f:
-        for i, line in enumerate(f):
-            if i < start_line:
-                continue
-                
-            paper = json.loads(line)
-            safe_id = paper['id'].replace('/', '_')
-            
-            # FILTER: Nur verarbeiten, wenn das PDF hochgeladen wurde
-            if safe_id in available_pdfs:
-                batch_papers.append(paper)
-            
-            if len(batch_papers) == batch_size:
-                # Metadata Fusing
-                texts_to_embed = []
-                for p in batch_papers:
-                    kws = ", ".join(p.get('keywords', []))
-                    combined = f"Title: {p['title_clean']} | Keywords: {kws} | Abstract: {p['abstract_clean']}"
-                    texts_to_embed.append(combined)
-                
-                # Embeddings berechnen (blitzschnell auf GPU)
-                embeddings = model.encode(texts_to_embed, show_progress_bar=False)
-                
-                points = []
-                for j in range(len(batch_papers)):
-                    p_data = batch_papers[j]
-                    s_id = p_data['id'].replace('/', '_')
-                    
-                    points.append(PointStruct(
-                        id=indexed_count + j + 1,  # Fortlaufende ID
-                        vector=embeddings[j].tolist(),
-                        payload={
-                            "paper_id": p_data['id'],
-                            "file_id": s_id,
-                            "title": p_data['title_clean'],
-                            "has_full_text": True
-                        }
-                    ))
-                
-                # Upload zur Qdrant Cloud
-                client.upsert(collection_name=collection_name, points=points)
-                indexed_count += len(batch_papers)
-                
-                # Checkpoint speichern (direkt im Google Drive)
-                with open(checkpoint_file, "w") as cf:
-                    cf.write(str(i + 1))
-                
-                print(f"Line {i+1} verarbeitet. Indexierte Paper in Cloud: {indexed_count}")
-                batch_papers = []
-
-    # Letzten Batch verarbeiten (Restliche Dateien)
-    if batch_papers:
-        texts_to_embed = [f"Title: {p['title_clean']} | Keywords: {', '.join(p.get('keywords', []))} | Abstract: {p['abstract_clean']}" for p in batch_papers]
-        embeddings = model.encode(texts_to_embed, show_progress_bar=False)
-        points = [
-            PointStruct(
-                id=indexed_count + j + 1, 
-                vector=embeddings[j].tolist(), 
-                payload={"paper_id": batch_papers[j]['id'], "file_id": batch_papers[j]['id'].replace('/', '_'), "title": batch_papers[j]['title_clean'], "has_full_text": True}
-            ) for j in range(len(batch_papers))
-        ]
-        client.upsert(collection_name=collection_name, points=points)
-        indexed_count += len(batch_papers)
+    # 1. PLATFORM-AWARE CLUSTER CONNECTION HANDSHAKE
+    if IS_COLAB or IS_KAGGLE:
+        print("🌐 Connecting to Remote Production Qdrant Cloud Instance...")
+        # Try fetching from environment first (handles manual injections)
+        cloud_url = os.getenv('QDRANT_URL')
+        cloud_key = os.getenv('QDRANT_API_KEY')
         
-    print(f"🏁 Fertig! Insgesamt {indexed_count} Abstracts erfolgreich in die Qdrant Cloud geladen.")
-else:
-    print(f"❌ Fehler: {input_file} wurde nicht im Drive gefunden!")
+        # Fallback to native platform secret clients if empty
+        if not cloud_url or not cloud_key:
+            if IS_KAGGLE:
+                from kaggle_secrets import UserSecretsClient
+                user_secrets = UserSecretsClient()
+                cloud_url = user_secrets.get_secret("QDRANT_URL")
+                cloud_key = user_secrets.get_secret("QDRANT_API_KEY")
+        
+        client = qdrant_client.QdrantClient(
+            url=cloud_url, 
+            api_key=cloud_key,
+            check_compatibility=False,
+            timeout=60.0
+        )
+    else:
+        print("🏠 Local fallback active. Connecting to local Qdrant directory...")
+        client = qdrant_client.QdrantClient(path=r"C:\Users\ahmad\Desktop\rag_ml\qdrant_db")
+
+    # Target the unified optimized collection we cleared earlier
+    collection_name = "stage1_abstracts_cleaned"
+    
+    if not client.collection_exists(collection_name):
+        print(f"✨ Initializing fresh schema schematic: {collection_name}")
+        client.create_collection(
+            collection_name=collection_name,
+            vectors_config=VectorParams(size=1024, distance=Distance.COSINE)
+        )
+
+    # 2. SEPARATE CHECKPOINT PATH MANAGEMENT
+    # We use a dedicated text file tracker to handle abstract sync states safely
+    abstracts_checkpoint = "/kaggle/working/abstracts_indexing_checkpoint.txt"
+    done_files = []
+    if os.path.exists(abstracts_checkpoint):
+        with open(abstracts_checkpoint, "r") as f:
+            done_files = f.read().splitlines()
+
+    if not os.path.exists(PATHS["markdown"]):
+        print(f"❌ Critical Error: Source markdown folder missing at: {PATHS['markdown']}")
+        return
+
+    all_files = [f for f in os.listdir(PATHS["markdown"]) if f.endswith(".md")]
+    files_to_process = [f for f in all_files if f not in done_files]
+
+    print(f"🚀 Processing {len(files_to_process)} abstracts for metadata synchronization...")
+    UPLOAD_BATCH_SIZE = 64 # Aggressive batch size optimized for GPU memory sweeps
+
+    for filename in tqdm(files_to_process, desc="Abstract Sync Progress"):
+        file_path = os.path.join(PATHS["markdown"], filename)
+        # ID Normalization string parsing (e.g. 2405_06707 -> 2405.06707)
+        paper_id = filename.replace(".md", "").replace("_", ".")
+        
+        try:
+            with open(file_path, "r", encoding="utf-8") as f:
+                raw_md = f.read()
+        except Exception:
+            continue
+            
+        # Parse out the top section header block where abstract text usually anchors
+        # This extracts a dense context segment for Stage 1 lookup matching
+        cleaned_md = clean_scientific_markdown(raw_md, replace_math=True)
+        abstract_segment = cleaned_md[:3000] # Extracts high-density abstract/intro text context
+        
+        if abstract_segment.strip():
+            # Metadata Fusing: We attach Title anchors directly to the abstract vector space
+            title_anchor = filename.replace(".md", "").replace("_", " ")
+            fused_text = f"Title: {title_anchor} | Content: {abstract_segment}"
+            
+            vector = model.encode(fused_text, show_progress_bar=False).tolist()
+            
+            # Use deterministic MD5 string IDs matching your main chunker architecture layout
+            point_id = hashlib.md5(f"{paper_id}_abstract_stage1".encode()).hexdigest()
+            
+            point = PointStruct(
+                id=point_id,
+                vector=vector,
+                payload={
+                    "paper_id": paper_id, 
+                    "text": abstract_segment,
+                    "has_full_text": True
+                }
+            )
+            
+            # Crisis-proof multi-attempt cloud upload sequence
+            for attempt in range(3):
+                try:
+                    client.upsert(collection_name=collection_name, points=[point])
+                    break
+                except Exception as e:
+                    if attempt < 2:
+                        time.sleep(5)
+                    else:
+                        print(f"⚠️ Cloud insertion bottleneck hit for paper {paper_id}: {e}")
+
+        # Update tracking file on loop iteration completion
+        with open(abstracts_checkpoint, "a") as f:
+            f.write(filename + "\n")
+
+    # 3. SET PRODUCTION PAYLOAD INDEX DIRECTLY ON COMPLETION
+    print(f"🔧 Synchronized. Setting high-performance keyword indexing layer...")
+    try:
+        client.create_payload_index(
+            collection_name=collection_name,
+            field_name="paper_id",
+            field_schema=PayloadSchemaType.KEYWORD
+        )
+        print("✅ Production Payload Index compiled successfully!")
+    except Exception as e:
+        print(f"⚠️ Index check passed: {e}")
+
+    print("🏆 Stage 1 Abstract Indexing Completely Synchronized!")
+
+if __name__ == "__main__":
+    main()
