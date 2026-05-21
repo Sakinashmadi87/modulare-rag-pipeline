@@ -1,4 +1,4 @@
-%%writefile /kaggle/working/abstracts_indexing.py
+#abstracts_indexing.py
 import os
 import json
 import hashlib
