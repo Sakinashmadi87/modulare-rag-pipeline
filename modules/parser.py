@@ -1,7 +1,8 @@
 import os
 import json
 import pymupdf4llm # Der schnelle Baseline-Parser aus deinem Grid
-
+from docling.document_converter import DocumentConverter
+from langchain_text_splitters import MarkdownHeaderTextSplitter, RecursiveCharacterTextSplitter
 class ArxivParser:
     def __init__(self, method="PyMuPDF4LLM"):
         self.method = method
@@ -11,11 +12,12 @@ class ArxivParser:
             # Extrahiert Text, Tabellen und Bilder als Markdown
             return pymupdf4llm.to_markdown(pdf_path)
         
-        elif self.method == "Marker":
-            # Hier käme später der Code für Marker (deep learning basiert)
-            pass
-            
-        return ""
+        elif self.method == "Docling":
+            # Parse the PDF using Docling
+            converter = DocumentConverter()
+            result = converter.convert("your_academic_paper.pdf")
+            markdown_text = result.document.export_to_markdown() 
+        return markdown_text
 
 # --- Execution Logic ---
 pdf_dir = r"C:\Users\ahmad\Desktop\rag_ml\data\papers\pdfs_active"
