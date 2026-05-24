@@ -5,17 +5,16 @@ import sys
 from pathlib import Path
 
 # --- Importiere config.py ---
-# Stelle sicher, dass config.py im gleichen Verzeichnis ist
 sys.path.append(os.getcwd())
 try:
     import config
 except ImportError as e:
     raise ImportError(f"config.py nicht gefunden: {e}")
 
-# --- Konstanten aus config laden ---
-PDF_DIR = os.path.join(config.PATHS["data_root"], "papers", "pdfs_active")
-OUTPUT_DIR = config.PATHS["markdown"]  # /kaggle/working/papers/extracted_markdown
-CHECKPOINT_FILE = "checkpoint.json"  # Speichert den Fortschritt
+# --- Lade Pfad aus config ---
+PDF_DIR = config.PATHS["pdfs_active"]  # ✅ Jetzt korrekt: /kaggle/input/.../pdfs_active
+OUTPUT_DIR = config.PATHS["markdown"]   # ✅ /kaggle/working/papers/extracted_markdown
+CHECKPOINT_FILE = "checkpoint.json"     # ✅ Speichert im aktuellen Verzeichnis
 
 # --- Checkpoint-Manager ---
 def load_checkpoint():
@@ -61,7 +60,7 @@ def main():
     # Sicherstellen, dass Ausgabeverzeichnis existiert
     os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-    parser = ArxivParser(method="Docling")  # Ändere zu "Docling", wenn gewünscht
+    parser = ArxivParser(method="Docling")  # Ändere zu "PyMuPDF4LLM", wenn gewünscht
     done_files = load_checkpoint()
 
     # Liste aller PDFs
