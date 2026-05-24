@@ -9,7 +9,7 @@ IS_KAGGLE = os.path.exists('/kaggle')
 # === 2. Umgebungsabhängige Basis-Pfade ===
 if IS_KAGGLE:
     BASE_DATA_ROOT = "/kaggle/input/datasets/sakinaahmadi/rag-ml-data"
-    BASE_OUTPUT_ROOT = "/kaggle/working"  # ✅ Jetzt schreibbar!
+    BASE_OUTPUT_ROOT = "/kaggle/working"
     BASE_EVAL_FILE = "/kaggle/input/datasets/sakinaahmadi/rag-automl-gold-standard-100q/eval_set_100q.jsonl"
 elif IS_COLAB:
     BASE_DATA_ROOT = "/content/drive/MyDrive/rag_ml_data"
@@ -22,8 +22,10 @@ else:
     BASE_EVAL_FILE = os.path.join(BASE_DATA_ROOT, "papers", "eval_set_100q.jsonl")
 
 # === 3. Dynamische Pfad-Generierung ===
+# ✅ Korrektur: pdfs_active ist direkt im BASE_DATA_ROOT, nicht in "papers/"
 PATHS = {
-    "markdown": os.path.join(BASE_OUTPUT_ROOT, "papers", "extracted_markdown"),  # ✅ Jetzt in /kaggle/working!
+    "pdfs_active": os.path.join(BASE_DATA_ROOT, "pdfs_active"),  # ✅ Direkt hier
+    "markdown": os.path.join(BASE_OUTPUT_ROOT, "papers", "extracted_markdown"),  # ✅ Ausgabe in /kaggle/working
     "eval_set": BASE_EVAL_FILE,
     "checkpoint_1024": os.path.join(BASE_OUTPUT_ROOT, "indexing_checkpoint_1024.txt"),
     "results_csv": os.path.join(BASE_OUTPUT_ROOT, "final_optimization_results.csv"),
