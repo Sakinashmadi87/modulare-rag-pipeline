@@ -9,7 +9,7 @@ IS_KAGGLE = os.path.exists('/kaggle')
 # === 2. Umgebungsabhängige Basis-Pfade ===
 if IS_KAGGLE:
     BASE_DATA_ROOT = "/kaggle/input/datasets/sakinaahmadi/rag-ml-data"
-    BASE_OUTPUT_ROOT = "/kaggle/working"
+    BASE_OUTPUT_ROOT = "/kaggle/working"  # ✅ Jetzt schreibbar!
     BASE_EVAL_FILE = "/kaggle/input/datasets/sakinaahmadi/rag-automl-gold-standard-100q/eval_set_100q.jsonl"
 elif IS_COLAB:
     BASE_DATA_ROOT = "/content/drive/MyDrive/rag_ml_data"
@@ -23,7 +23,7 @@ else:
 
 # === 3. Dynamische Pfad-Generierung ===
 PATHS = {
-    "markdown": os.path.join(BASE_DATA_ROOT, "papers", "extracted_markdown"),
+    "markdown": os.path.join(BASE_OUTPUT_ROOT, "papers", "extracted_markdown"),  # ✅ Jetzt in /kaggle/working!
     "eval_set": BASE_EVAL_FILE,
     "checkpoint_1024": os.path.join(BASE_OUTPUT_ROOT, "indexing_checkpoint_1024.txt"),
     "results_csv": os.path.join(BASE_OUTPUT_ROOT, "final_optimization_results.csv"),
@@ -48,13 +48,13 @@ EXPANSION_RULES = {
 HP_GRID = {
     "top_k_papers": [5, 10, 15, 20],
     "top_k_chunks": [5, 10, 15],
-    "use_expansion": [False, True],  # ✅ Jetzt flexibel!
+    "use_expansion": [False, True],
     "chunk_size": [1024],
     "chunk_overlap": [100],
     "math_heuristic": [True],
     "embedding_model": ["BAAI/bge-m3"],
     "llm_model": ["unsloth/llama-3-8b-Instruct"],
-    "device": [DEVICE],  # ✅ Dynamisch, aber nur ein Wert
+    "device": [DEVICE],
 }
 
 # === 7. Optional: Debug-Info für Logging ===
