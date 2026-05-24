@@ -3,8 +3,8 @@ import os
 import sys
 
 # === 1. Umgebungs-Identifikation ===
-IS_COLAB = 'google.colab' in sys.modules
-IS_KAGGLE = os.path.exists('/kaggle')
+IS_COLAB = os.path.exists("/content")
+IS_KAGGLE = os.path.exists("/kaggle")
 
 # === 2. Umgebungsabhängige Basis-Pfade ===
 if IS_KAGGLE:
