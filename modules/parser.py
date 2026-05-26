@@ -60,15 +60,11 @@ class ArxivParser:
                 raise RuntimeError(f"Docling-Fehler: {e}")
 
 # --- 5. Hauptprogramm ---
-def main():
-    # Sicherstellen, dass der Ausgabe-Ordner existiert
+def main(run_mode_param=None):  # 👈 Hier den Parameter erlauben
     os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-    # Parser starten (Hier kannst du zwischen "Docling" und "PyMuPDF4LLM" wählen)
     parser = ArxivParser(method="Docling") 
     done_files = load_checkpoint()
 
-    # Alle PDFs einlesen und STRIKT sortieren (Wichtig für identische Viertel auf beiden Laptops!)
     all_pdfs = sorted([f for f in os.listdir(PDF_DIR) if f.endswith(".pdf")])
     total_all = len(all_pdfs)
     
@@ -77,9 +73,12 @@ def main():
         return
 
     # ====================================================
-    # 🔥 HIER DEIN PAKET WÄHLEN (Ändere diesen Wert je nach Durchlauf)
-    # Erlaubte Werte: "V1", "V2", "V3", "V4" oder "ALL"
-    RUN_MODE = "V1"  
+    # 🔥 Wenn ein Parameter übergeben wurde, nutze ihn. 
+    # Ansonsten nimm den Standardwert "V1"
+    if run_mode_param:
+        RUN_MODE = run_mode_param
+    else:
+        RUN_MODE = "V1"  
     # ====================================================
 
     # Berechne die Grenzen für die 4 Viertel
